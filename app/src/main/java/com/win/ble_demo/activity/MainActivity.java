@@ -91,7 +91,8 @@ public class MainActivity extends AppCompatActivity {
     private int size;
     private byte[] frame;
     private int cap;
-
+    private int mWaitingId = -1;
+    private boolean isWaiting = false;
     private Handler mHandler = new Handler();
 
     @Override
@@ -119,7 +120,7 @@ public class MainActivity extends AppCompatActivity {
         mBLE.setOnDataAvailableListener(new BluetoothLeClass.OnDataAvailableListener() {
             @Override
             public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-                String value = new String(characteristic.getValue());
+//                String value = new String(characteristic.getValue());
                 if (status == BluetoothGatt.GATT_SUCCESS) {
 //                    Log.e(TAG, "onCharRead " + gatt.getDevice().getName()
 //                            + " read "
@@ -186,7 +187,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private int mWaitingId = -1;
 
     @OnClick({R.id.shake_hand, R.id.status_1, R.id.status_2, R.id.status_3, R.id.status_4,
             R.id.data_1, R.id.data_2, R.id.data_3, R.id.data_4})
@@ -238,52 +238,35 @@ public class MainActivity extends AppCompatActivity {
                             clearUI();
                             break;
                         case R.id.status_1:
-                            tv_status1.setText("不在线");
-                            tv_status1.setTextColor(Color.parseColor("#ff0000"));
-                            tv_data1.setText("0");
+                            showFailure(1);
                             break;
                         case R.id.status_2:
-                            tv_status2.setText("不在线");
-                            tv_status2.setTextColor(Color.parseColor("#ff0000"));
-                            tv_data2.setText("0");
+                            showFailure(2);
                             break;
                         case R.id.status_3:
-                            tv_status3.setText("不在线");
-                            tv_status3.setTextColor(Color.parseColor("#ff0000"));
-                            tv_data3.setText("0");
+                            showFailure(3);
                             break;
                         case R.id.status_4:
-                            tv_status4.setText("不在线");
-                            tv_status4.setTextColor(Color.parseColor("#ff0000"));
-                            tv_data4.setText("0");
+                            showFailure(4);
                             break;
                         case R.id.data_1:
-                            tv_status1.setText("不在线");
-                            tv_status1.setTextColor(Color.parseColor("#ff0000"));
-                            tv_data1.setText("0");
+                            showFailure(1);
                             break;
                         case R.id.data_2:
-                            tv_status2.setText("不在线");
-                            tv_status2.setTextColor(Color.parseColor("#ff0000"));
-                            tv_data2.setText("0");
+                            showFailure(2);
                             break;
                         case R.id.data_3:
-                            tv_status3.setText("不在线");
-                            tv_status3.setTextColor(Color.parseColor("#ff0000"));
-                            tv_data3.setText("0");
+                            showFailure(3);
                             break;
                         case R.id.data_4:
-                            tv_status4.setText("不在线");
-                            tv_status4.setTextColor(Color.parseColor("#ff0000"));
-                            tv_data4.setText("0");
+                            showFailure(4);
                             break;
                     }
-                    tv_debug.setText("");
                     ToastUtil.getInstance().showToast("操作超时");
                     isWaiting = false;
                 }
             }
-        }, 3000);
+        }, 5000);
     }
 
     private void displayGattServices(List<BluetoothGattService> gattServices) {
@@ -298,7 +281,6 @@ public class MainActivity extends AppCompatActivity {
         mBLE.enable_JDY_ble(true);
     }
 
-    private boolean isWaiting = false;
 
     private void displayData(final byte[] data) {
         runOnUiThread(new Runnable() {
@@ -360,41 +342,45 @@ public class MainActivity extends AppCompatActivity {
                             if (TextUtils.isEmpty(dataFrame.getDeviceData())) {
                                 tv_status1.setText("不在线");
                                 tv_status1.setTextColor(Color.parseColor("#ff0000"));
+                                tv_data1.setText("0");
                             } else {
                                 tv_status1.setText("在线");
                                 tv_status1.setTextColor(Color.parseColor("#00ff00"));
+                                tv_data1.setText(dataFrame.getDeviceData());
                             }
-                            tv_data1.setText(dataFrame.getDeviceData());
                             break;
                         case "数显千分尺":
                             if (TextUtils.isEmpty(dataFrame.getDeviceData())) {
                                 tv_status2.setText("不在线");
                                 tv_status2.setTextColor(Color.parseColor("#ff0000"));
+                                tv_data2.setText("0");
                             } else {
                                 tv_status2.setText("在线");
                                 tv_status2.setTextColor(Color.parseColor("#00ff00"));
+                                tv_data2.setText(dataFrame.getDeviceData());
                             }
-                            tv_data2.setText(dataFrame.getDeviceData());
                             break;
                         case "数显百分表":
                             if (TextUtils.isEmpty(dataFrame.getDeviceData())) {
                                 tv_status3.setText("不在线");
                                 tv_status3.setTextColor(Color.parseColor("#ff0000"));
+                                tv_data3.setText("0");
                             } else {
                                 tv_status3.setText("在线");
                                 tv_status3.setTextColor(Color.parseColor("#00ff00"));
+                                tv_data3.setText(dataFrame.getDeviceData());
                             }
-                            tv_data3.setText(dataFrame.getDeviceData());
                             break;
                         case "数显扭矩扳手":
                             if (TextUtils.isEmpty(dataFrame.getDeviceData())) {
                                 tv_status4.setText("不在线");
                                 tv_status4.setTextColor(Color.parseColor("#ff0000"));
+                                tv_data4.setText("0");
                             } else {
                                 tv_status4.setText("在线");
                                 tv_status4.setTextColor(Color.parseColor("#00ff00"));
+                                tv_data4.setText(dataFrame.getDeviceData());
                             }
-                            tv_data4.setText(dataFrame.getDeviceData());
                             break;
                     }
                 }
@@ -409,19 +395,10 @@ public class MainActivity extends AppCompatActivity {
     private void clearUI() {
         tv_device_name.setText("");
         tv_device_address.setText("");
-        tv_status1.setText("不在线");
-        tv_status2.setText("不在线");
-        tv_status3.setText("不在线");
-        tv_status4.setText("不在线");
-        tv_status1.setTextColor(Color.parseColor("#ff0000"));
-        tv_status2.setTextColor(Color.parseColor("#ff0000"));
-        tv_status3.setTextColor(Color.parseColor("#ff0000"));
-        tv_status4.setTextColor(Color.parseColor("#ff0000"));
-        tv_data1.setText("0");
-        tv_data2.setText("0");
-        tv_data3.setText("0");
-        tv_data4.setText("0");
-        tv_debug.setText("");
+        showFailure(1);
+        showFailure(2);
+        showFailure(3);
+        showFailure(4);
     }
 
     @Override
@@ -474,7 +451,6 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-
     private void showFailure(int type) {
         switch (type) {
             case 1:
@@ -498,6 +474,7 @@ public class MainActivity extends AppCompatActivity {
                 tv_status4.setTextColor(Color.parseColor("#ff0000"));
                 break;
         }
+        tv_debug.setText("");
     }
 
 }

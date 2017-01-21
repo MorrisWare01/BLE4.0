@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">SMDC</string>
+    <string name="ble_not_supported">BLE is not supported</string>
+    <string name="label_data">Data:</string>
+    <string name="label_device_name">Device Name</string>
+    <string name="label_device_address">Device address:</string>
+    <string name="label_state">State:</string>
+    <string name="no_data">No data</string>
+    <string name="connected">Connected</string>
+    <string name="disconnected">Disconnected</string>
+    <string name="title_devices">BLE Device Scan</string>
+    <string name="error_bluetooth_not_supported">Bluetooth not supported.</string>
+
+    <string name="unknown_device">Unknown device</string>
+    <string name="unknown_characteristic">Unknown characteristic</string>
+    <string name="unknown_service">Unknown service</string>
+
+    <!-- Menu items -->
+    <string name="menu_connect">连接</string>
+    <string name="menu_disconnect">断开</string>
+    <string name="menu_scan">扫描</string>
+    <string name="menu_stop">停止</string>
+    <string name="refresh">刷新</string>
+    <string name="smdc_lab">SMDC_LAB :</string>
+    <string name="smdc_mac">SMDC_MAC :</string>
+    <string name="online_query">在线查询</string>
+    <string name="get_data">采集数据</string>
+    <string name="record_query">记录查询</string>
+
+</resources>

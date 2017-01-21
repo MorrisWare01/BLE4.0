@@ -16,13 +16,19 @@
 
 package com.win.ble_demo.activity;
 
-import android.bluetooth.BluetoothGatt;
-import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattService;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
+import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
@@ -32,13 +38,18 @@ import android.view.View;
 import android.widget.TextView;
 
 import com.win.ble_demo.R;
+import com.win.ble_demo.bean.DataCollection;
 import com.win.ble_demo.bean.Frame;
 import com.win.ble_demo.bean.ShakeHandFrame;
 import com.win.ble_demo.bean.SpecifiedDeviceDataFrame;
 import com.win.ble_demo.bean.SpecifiedDeviceStatusFrame;
-import com.win.ble_demo.util.BluetoothLeClass;
+import com.win.ble_demo.db.DataCollectionDao;
+import com.win.ble_demo.server.BluetoothLeService;
 import com.win.ble_demo.util.ToastUtil;
 
+import java.lang.ref.WeakReference;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 import butterknife.BindView;
@@ -59,7 +70,6 @@ public class MainActivity extends AppCompatActivity {
 
     @BindView(R.id.tv_device_name)
     TextView tv_device_name;
-
     @BindView(R.id.tv_device_address)
     TextView tv_device_address;
 
@@ -84,114 +94,77 @@ public class MainActivity extends AppCompatActivity {
     @BindView(R.id.tv_debug)
     TextView tv_debug;
 
-    private String mDeviceName;
+    private BluetoothLeService mBluetoothLeService;
     private String mDeviceAddress;
-    private boolean mConnected = false;
-    private BluetoothLeClass mBLE;
+    private int mBleConnectStatus = BluetoothLeService.STATE_DISCONNECTED;
+    private Handler mHandler = new WeakHandler(this);
+    private DataCollectionDao mDao;
+
+    private int cap;
     private int size;
     private byte[] frame;
-    private int cap;
     private int mWaitingId = -1;
     private boolean isWaiting = false;
-    private Handler mHandler = new Handler();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
+        mDao = new DataCollectionDao(this);
 
-        Intent intent = getIntent();
-        mDeviceName = intent.getStringExtra(EXTRAS_DEVICE_NAME);
+        final Intent intent = getIntent();
         mDeviceAddress = intent.getStringExtra(EXTRAS_DEVICE_ADDRESS);
 
-        mBLE = new BluetoothLeClass(this);
-        if (!mBLE.initialize()) {
-            Log.e(TAG, "Unable to initialize Bluetooth");
-            finish();
-        }
-
-        mBLE.setOnServiceDiscoverListener(new BluetoothLeClass.OnServiceDiscoverListener() {
-            @Override
-            public void onServiceDiscover(BluetoothGatt gatt) {
-                displayGattServices(mBLE.getSupportedGattServices());
-            }
-        });
-        mBLE.setOnDataAvailableListener(new BluetoothLeClass.OnDataAvailableListener() {
-            @Override
-            public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
-//                String value = new String(characteristic.getValue());
-                if (status == BluetoothGatt.GATT_SUCCESS) {
-//                    Log.e(TAG, "onCharRead " + gatt.getDevice().getName()
-//                            + " read "
-//                            + characteristic.getUuid().toString()
-//                            + " -> "
-//                            + value);
-                    displayData(characteristic.getValue());
-                }
-            }
-
-            @Override
-            public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
-//                Log.e(TAG, "onCharWrite " + gatt.getDevice().getName()
-//                        + " write "
-//                        + characteristic.getUuid().toString()
-//                        + " -> "
-//                        + Utils.bytes2HexString(characteristic.getValue()));
-                if (isWaiting) {
-                    byte[] bytes = characteristic.getValue();
-                    if (bytes[0] == 0x7E && cap == 0) {
-                        cap = bytes[1] * 256 + bytes[2];
-                        frame = new byte[cap];
-                        System.arraycopy(bytes, 0, frame, size, bytes.length);
-                        size = bytes.length;
-//                    Log.e("TAG", size + "/" + cap);
-                    } else {
-                        System.arraycopy(bytes, 0, frame, size, bytes.length);
-                        size += bytes.length;
-//                    Log.e("TAG", size + "/" + cap);
-                    }
-                    if (size >= cap) {
-                        displayData(frame);
-                        size = 0;
-                        cap = 0;
-                    }
-                }
-            }
-        });
-        mBLE.setOnConnectListener(new BluetoothLeClass.OnConnectListener() {
-            @Override
-            public void onConnect(BluetoothGatt gatt) {
-                mConnected = true;
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        clearUI();
-                    }
-                });
-                invalidateOptionsMenu();
-            }
-        });
-        mBLE.setOnDisconnectListener(new BluetoothLeClass.OnDisconnectListener() {
-            @Override
-            public void onDisconnect(BluetoothGatt gatt) {
-                mConnected = false;
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        clearUI();
-                    }
-                });
-                invalidateOptionsMenu();
-            }
-        });
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
+        bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
     }
 
+    @OnClick({R.id.record_1, R.id.record_2, R.id.record_3, R.id.record_4})
+    public void onRecordClick(View view) {
+        List<DataCollection> mList = null;
+        switch (view.getId()) {
+            case R.id.record_1:
+                mList = mDao.get("数显卡尺");
+                break;
+            case R.id.record_2:
+                mList = mDao.get("数显千分尺");
+                break;
+            case R.id.record_3:
+                mList = mDao.get("数显百分表");
+                break;
+            case R.id.record_4:
+                mList = mDao.get("数显扭矩扳手");
+                break;
+        }
+        if (mList != null && mList.size() > 0) {
+            showDialog(mList);
+        } else {
+            ToastUtil.getInstance().showToast("还没存入历史记录");
+        }
+    }
+
+    private void showDialog(List<DataCollection> list) {
+        StringBuilder sb = new StringBuilder();
+        for (DataCollection collection : list) {
+            sb.append(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date(collection.getTime())))
+                    .append("  ").append(collection.getData()).append("\n");
+        }
+        sb.deleteCharAt(sb.length() - 1);
+        new AlertDialog.Builder(this)
+                .setTitle("历史记录--" + list.get(0).getType())
+                .setMessage(sb.toString())
+                .setCancelable(true)
+                .setNeutralButton("返回", null)
+                .show();
+    }
 
     @OnClick({R.id.shake_hand, R.id.status_1, R.id.status_2, R.id.status_3, R.id.status_4,
             R.id.data_1, R.id.data_2, R.id.data_3, R.id.data_4})
     void onShakeHandClick(View view) {
-        if (!mConnected) {
+        if (mBleConnectStatus != BluetoothLeService.STATE_DISCOVERED) {
+            Log.e("TAG", "设备还没连接");
             return;
         }
         if (isWaiting) {
@@ -202,31 +175,31 @@ public class MainActivity extends AppCompatActivity {
         mWaitingId = view.getId();
         switch (view.getId()) {
             case R.id.shake_hand:
-                mBLE.shakeHand();
+                mBluetoothLeService.shakeHand();
                 break;
             case R.id.status_1:
-                mBLE.requestSpecifiedDeviceStatus("01000001");
+                mBluetoothLeService.requestSpecifiedDeviceStatus("01000001");
                 break;
             case R.id.status_2:
-                mBLE.requestSpecifiedDeviceStatus("02000001");
+                mBluetoothLeService.requestSpecifiedDeviceStatus("02000001");
                 break;
             case R.id.status_3:
-                mBLE.requestSpecifiedDeviceStatus("03000001");
+                mBluetoothLeService.requestSpecifiedDeviceStatus("03000001");
                 break;
             case R.id.status_4:
-                mBLE.requestSpecifiedDeviceStatus("04000001");
+                mBluetoothLeService.requestSpecifiedDeviceStatus("04000001");
                 break;
             case R.id.data_1:
-                mBLE.requestSpecifiedDeviceData("01000001");
+                mBluetoothLeService.requestSpecifiedDeviceData("01000001");
                 break;
             case R.id.data_2:
-                mBLE.requestSpecifiedDeviceData("02000001");
+                mBluetoothLeService.requestSpecifiedDeviceData("02000001");
                 break;
             case R.id.data_3:
-                mBLE.requestSpecifiedDeviceData("03000001");
+                mBluetoothLeService.requestSpecifiedDeviceData("03000001");
                 break;
             case R.id.data_4:
-                mBLE.requestSpecifiedDeviceData("04000001");
+                mBluetoothLeService.requestSpecifiedDeviceData("04000001");
                 break;
         }
         mHandler.postDelayed(new Runnable() {
@@ -268,19 +241,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }, 5000);
     }
-
-    private void displayGattServices(List<BluetoothGattService> gattServices) {
-        if (gattServices == null) return;
-        mBLE.enable_JDY_ble(true);
-        try {
-            Thread.currentThread();
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        mBLE.enable_JDY_ble(true);
-    }
-
 
     private void displayData(final byte[] data) {
         runOnUiThread(new Runnable() {
@@ -347,6 +307,7 @@ public class MainActivity extends AppCompatActivity {
                                 tv_status1.setText("在线");
                                 tv_status1.setTextColor(Color.parseColor("#00ff00"));
                                 tv_data1.setText(dataFrame.getDeviceData());
+                                mDao.put("数显卡尺", dataFrame.getDeviceData(), System.currentTimeMillis());
                             }
                             break;
                         case "数显千分尺":
@@ -358,6 +319,7 @@ public class MainActivity extends AppCompatActivity {
                                 tv_status2.setText("在线");
                                 tv_status2.setTextColor(Color.parseColor("#00ff00"));
                                 tv_data2.setText(dataFrame.getDeviceData());
+                                mDao.put("数显千分尺", dataFrame.getDeviceData(), System.currentTimeMillis());
                             }
                             break;
                         case "数显百分表":
@@ -369,6 +331,7 @@ public class MainActivity extends AppCompatActivity {
                                 tv_status3.setText("在线");
                                 tv_status3.setTextColor(Color.parseColor("#00ff00"));
                                 tv_data3.setText(dataFrame.getDeviceData());
+                                mDao.put("数显百分表", dataFrame.getDeviceData(), System.currentTimeMillis());
                             }
                             break;
                         case "数显扭矩扳手":
@@ -380,13 +343,14 @@ public class MainActivity extends AppCompatActivity {
                                 tv_status4.setText("在线");
                                 tv_status4.setTextColor(Color.parseColor("#00ff00"));
                                 tv_data4.setText(dataFrame.getDeviceData());
+                                mDao.put("数显扭矩扳手", dataFrame.getDeviceData(), System.currentTimeMillis());
                             }
                             break;
                     }
                 }
                 tv_debug.setText(frame.toDebug());
-                isWaiting = false;
                 mHandler.removeCallbacksAndMessages(null);
+                isWaiting = false;
                 ToastUtil.getInstance().showToast("操作成功");
             }
         });
@@ -404,33 +368,48 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        mBLE.connect(mDeviceAddress);
+        registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
+        if (mBluetoothLeService != null) {
+            mBleConnectStatus = BluetoothLeService.STATE_CONNECTING;
+            invalidateOptionsMenu();
+            final boolean result = mBluetoothLeService.connect(mDeviceAddress);
+            Log.d(TAG, "Connect request result=" + result);
+        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        mBLE.disconnect();
         mHandler.removeCallbacksAndMessages(null);
+        unregisterReceiver(mGattUpdateReceiver);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mBLE.close();
-        mBLE = null;
+        unbindService(mServiceConnection);
+        mBluetoothLeService = null;
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.gatt_services, menu);
-        if (mConnected) {
-            menu.findItem(R.id.menu_connect).setVisible(false);
-            menu.findItem(R.id.menu_disconnect).setVisible(true);
-            menu.findItem(R.id.menu_refresh).setActionView(null);
-        } else {
+        if (mBleConnectStatus == BluetoothLeService.STATE_DISCONNECTED) {
             menu.findItem(R.id.menu_connect).setVisible(true);
             menu.findItem(R.id.menu_disconnect).setVisible(false);
+            menu.findItem(R.id.menu_stop).setVisible(false);
+            menu.findItem(R.id.menu_refresh).setActionView(null);
+        } else if (mBleConnectStatus == BluetoothLeService.STATE_CONNECTING
+                || mBleConnectStatus == BluetoothLeService.STATE_CONNECTED) {
+            menu.findItem(R.id.menu_connect).setVisible(false);
+            menu.findItem(R.id.menu_disconnect).setVisible(false);
+            menu.findItem(R.id.menu_stop).setVisible(true);
+            menu.findItem(R.id.menu_refresh).setActionView(R.layout.actionbar_indeterminate_progress);
+        } else if (mBleConnectStatus == BluetoothLeService.STATE_DISCOVERED) {
+            menu.findItem(R.id.menu_connect).setVisible(false);
+            menu.findItem(R.id.menu_disconnect).setVisible(true);
+            menu.findItem(R.id.menu_stop).setVisible(false);
+            menu.findItem(R.id.menu_refresh).setActionView(null);
         }
         return true;
     }
@@ -439,10 +418,16 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_connect:
-                mBLE.connect(mDeviceAddress);
+                mBleConnectStatus = BluetoothLeService.STATE_CONNECTING;
+                mBluetoothLeService.connect(mDeviceAddress);
+                invalidateOptionsMenu();
                 return true;
             case R.id.menu_disconnect:
-                mBLE.disconnect();
+                mBluetoothLeService.disconnect();
+                return true;
+            case R.id.menu_stop:
+                mHandler.removeCallbacksAndMessages(null);
+                mBluetoothLeService.disconnect();
                 return true;
             case android.R.id.home:
                 onBackPressed();
@@ -475,6 +460,82 @@ public class MainActivity extends AppCompatActivity {
                 break;
         }
         tv_debug.setText("");
+    }
+
+    private static IntentFilter makeGattUpdateIntentFilter() {
+        final IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
+        intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
+        intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
+        return intentFilter;
+    }
+
+    private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            final String action = intent.getAction();
+            if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
+                mBleConnectStatus = BluetoothLeService.STATE_CONNECTED;
+                clearUI();
+            } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
+                mBleConnectStatus = BluetoothLeService.STATE_DISCONNECTED;
+                clearUI();
+                invalidateOptionsMenu();
+            } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
+                if (mBluetoothLeService.getSupportedGattServices() == null) return;
+                mBluetoothLeService.enable_JDY_ble(true);
+                SystemClock.sleep(100);
+                mBleConnectStatus = BluetoothLeService.STATE_DISCOVERED;
+                invalidateOptionsMenu();
+            } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
+                if (isWaiting) {
+                    byte[] bytes = intent.getByteArrayExtra(BluetoothLeService.EXTRA_DATA);
+                    if (bytes[0] == 0x7E && cap == 0) {
+                        cap = bytes[1] * 256 + bytes[2];
+                        frame = new byte[cap];
+                        System.arraycopy(bytes, 0, frame, size, bytes.length);
+                        size = bytes.length;
+                    } else {
+                        System.arraycopy(bytes, 0, frame, size, bytes.length);
+                        size += bytes.length;
+                    }
+                    if (size >= cap) {
+                        displayData(frame);
+                        size = 0;
+                        cap = 0;
+                    }
+                }
+            }
+        }
+    };
+
+    private final ServiceConnection mServiceConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder service) {
+            mBluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
+            if (!mBluetoothLeService.initialize()) {
+                Log.e(TAG, "Unable to initialize Bluetooth");
+                finish();
+            }
+            // Automatically connects to the device upon successful start-up initialization.
+            mBluetoothLeService.connect(mDeviceAddress);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            mBluetoothLeService = null;
+        }
+    };
+
+    private static class WeakHandler extends Handler {
+
+        private WeakReference<Activity> reference;
+
+        public WeakHandler(Activity activity) {
+            reference = new WeakReference<Activity>(activity);
+        }
     }
 
 }

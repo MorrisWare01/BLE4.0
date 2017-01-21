@@ -1,7 +1,5 @@
 package com.win.ble_demo.bean;
 
-import android.util.Log;
-
 import com.win.ble_demo.util.Utils;
 
 /**

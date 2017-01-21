@@ -16,14 +16,20 @@
 
 package com.win.ble_demo.activity;
 
+import android.Manifest;
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -34,6 +40,8 @@ import android.widget.Toast;
 
 import com.win.ble_demo.R;
 import com.win.ble_demo.adapter.LeDeviceListAdapter;
+
+import java.lang.ref.WeakReference;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -54,7 +62,7 @@ public class DeviceScanActivity extends AppCompatActivity implements AdapterView
     private LeDeviceListAdapter mLeDeviceListAdapter;
     private BluetoothAdapter mBluetoothAdapter;
 
-    private Handler mHandler = new Handler();
+    private Handler mUIHandler = new WeakHandler(this);
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -62,40 +70,38 @@ public class DeviceScanActivity extends AppCompatActivity implements AdapterView
         setContentView(R.layout.activity_device_scan);
         ButterKnife.bind(this);
         mListView.setOnItemClickListener(this);
-
-//        checkBluetoothPermission();
-        connectBluetooth();
+        checkBluetoothPermission();
     }
-//
-//    //校验蓝牙权限
-//    private void checkBluetoothPermission() {
-//        if (Build.VERSION.SDK_INT >= 23) {
-//            //校验是否已具有模糊定位权限
-//            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-//                    != PackageManager.PERMISSION_GRANTED) {
-//                ActivityCompat.requestPermissions(this,
-//                        new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
-//                        MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION);
-//            } else {
-//                //具有权限
-//                connectBluetooth();
-//            }
-//        } else {
-//            //系统不高于6.0直接执行
-//            connectBluetooth();
-//        }
-//    }
-//
-//    @Override
-//    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-//        if (requestCode == MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION) {
-//            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-//                connectBluetooth();
-//            } else {
-//                Toast.makeText(this, "授权失败", Toast.LENGTH_SHORT).show();
-//            }
-//        }
-//    }
+
+    //校验蓝牙权限
+    private void checkBluetoothPermission() {
+        if (Build.VERSION.SDK_INT >= 23) {
+            //校验是否已具有模糊定位权限
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
+                        MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION);
+            } else {
+                //具有权限
+                connectBluetooth();
+            }
+        } else {
+            //系统不高于6.0直接执行
+            connectBluetooth();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (requestCode == MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                connectBluetooth();
+            } else {
+                Toast.makeText(this, "授权失败", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
 
     private void connectBluetooth() {
         if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
@@ -126,6 +132,7 @@ public class DeviceScanActivity extends AppCompatActivity implements AdapterView
         super.onPause();
         scanLeDevice(false);
         mLeDeviceListAdapter.clear();
+        mUIHandler.removeCallbacksAndMessages(null);
     }
 
     @Override
@@ -149,6 +156,7 @@ public class DeviceScanActivity extends AppCompatActivity implements AdapterView
         switch (item.getItemId()) {
             case R.id.menu_scan:
                 mLeDeviceListAdapter.clear();
+                mLeDeviceListAdapter.notifyDataSetChanged();
                 scanLeDevice(true);
                 break;
             case R.id.menu_stop:
@@ -163,8 +171,8 @@ public class DeviceScanActivity extends AppCompatActivity implements AdapterView
         final BluetoothDevice device = mLeDeviceListAdapter.getDevice(position);
         if (device == null) return;
         final Intent intent = new Intent(this, MainActivity.class);
-        intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_NAME, device.getName());
-        intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_ADDRESS, device.getAddress());
+        intent.putExtra(MainActivity.EXTRAS_DEVICE_NAME, device.getName());
+        intent.putExtra(MainActivity.EXTRAS_DEVICE_ADDRESS, device.getAddress());
         if (mScanning) {
             mBluetoothAdapter.stopLeScan(mLeScanCallback);
             mScanning = false;
@@ -174,7 +182,8 @@ public class DeviceScanActivity extends AppCompatActivity implements AdapterView
 
     private void scanLeDevice(final boolean enable) {
         if (enable) {
-            mHandler.postDelayed(new Runnable() {
+            mUIHandler.removeCallbacksAndMessages(null);
+            mUIHandler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     mScanning = false;
@@ -182,7 +191,6 @@ public class DeviceScanActivity extends AppCompatActivity implements AdapterView
                     invalidateOptionsMenu();
                 }
             }, SCAN_PERIOD);
-
             mScanning = true;
             mBluetoothAdapter.startLeScan(mLeScanCallback);
         } else {
@@ -197,7 +205,7 @@ public class DeviceScanActivity extends AppCompatActivity implements AdapterView
 
                 @Override
                 public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
-                    runOnUiThread(new Runnable() {
+                    mUIHandler.post(new Runnable() {
                         @Override
                         public void run() {
                             mLeDeviceListAdapter.addDevice(device);
@@ -206,4 +214,20 @@ public class DeviceScanActivity extends AppCompatActivity implements AdapterView
                     });
                 }
             };
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mLeScanCallback = null;
+    }
+
+    private static class WeakHandler extends Handler {
+
+        private WeakReference<Activity> reference;
+
+        public WeakHandler(Activity activity) {
+            reference = new WeakReference<Activity>(activity);
+        }
+    }
+
 }

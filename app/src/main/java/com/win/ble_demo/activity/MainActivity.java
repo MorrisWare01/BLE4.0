@@ -73,23 +73,31 @@ public class MainActivity extends AppCompatActivity {
     @BindView(R.id.tv_device_address)
     TextView tv_device_address;
 
-    @BindView(R.id.tv_data1)
-    TextView tv_data1;
-    @BindView(R.id.tv_data2)
-    TextView tv_data2;
-    @BindView(R.id.tv_data3)
-    TextView tv_data3;
-    @BindView(R.id.tv_data4)
-    TextView tv_data4;
+    @BindView(R.id.tv_data_kachi)
+    TextView tv_data_kachi;
+    @BindView(R.id.tv_data_qianfenchi)
+    TextView tv_data_qianfenchi;
+    @BindView(R.id.tv_data_baifenbiao)
+    TextView tv_data_baifenbiao;
+    @BindView(R.id.tv_data_niujubanshou)
+    TextView tv_data_niujubanshou;
+    @BindView(R.id.tv_data_shenduchi)
+    TextView tv_data_shenduchi;
+    @BindView(R.id.tv_data_lishiyingduji)
+    TextView tv_data_lishiyingduji;
 
-    @BindView(R.id.tv_status1)
-    TextView tv_status1;
-    @BindView(R.id.tv_status2)
-    TextView tv_status2;
-    @BindView(R.id.tv_status3)
-    TextView tv_status3;
-    @BindView(R.id.tv_status4)
-    TextView tv_status4;
+    @BindView(R.id.tv_status_kachi)
+    TextView tv_status_kachi;
+    @BindView(R.id.tv_status_qianfenchi)
+    TextView tv_status_qianfenchi;
+    @BindView(R.id.tv_status_baifenbiao)
+    TextView tv_status_baifenbiao;
+    @BindView(R.id.tv_status_niujubanshou)
+    TextView tv_status_niujubanshou;
+    @BindView(R.id.tv_status_shenduchi)
+    TextView tv_status_shenduchi;
+    @BindView(R.id.tv_status_lishiyingduji)
+    TextView tv_status_lishiyingduji;
 
     @BindView(R.id.tv_debug)
     TextView tv_debug;
@@ -121,21 +129,27 @@ public class MainActivity extends AppCompatActivity {
         bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
     }
 
-    @OnClick({R.id.record_1, R.id.record_2, R.id.record_3, R.id.record_4})
+    @OnClick({R.id.record_kachi, R.id.record_qianfengchi, R.id.record_baifenbiao, R.id.record_niujubanshou, R.id.record_shenduchi, R.id.record_lishiyingduji})
     public void onRecordClick(View view) {
         List<DataCollection> mList = null;
         switch (view.getId()) {
-            case R.id.record_1:
+            case R.id.record_kachi:
                 mList = mDao.get("数显卡尺");
                 break;
-            case R.id.record_2:
+            case R.id.record_qianfengchi:
                 mList = mDao.get("数显千分尺");
                 break;
-            case R.id.record_3:
+            case R.id.record_baifenbiao:
                 mList = mDao.get("数显百分表");
                 break;
-            case R.id.record_4:
+            case R.id.record_niujubanshou:
                 mList = mDao.get("数显扭矩扳手");
+                break;
+            case R.id.record_shenduchi:
+                mList = mDao.get("数显深度尺");
+                break;
+            case R.id.record_lishiyingduji:
+                mList = mDao.get("里氏硬度计");
                 break;
         }
         if (mList != null && mList.size() > 0) {
@@ -160,8 +174,8 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
-    @OnClick({R.id.shake_hand, R.id.status_1, R.id.status_2, R.id.status_3, R.id.status_4,
-            R.id.data_1, R.id.data_2, R.id.data_3, R.id.data_4})
+    @OnClick({R.id.shake_hand, R.id.status_kachi, R.id.status_qianfengchi, R.id.status_baifenbiao, R.id.status_niujubanshou, R.id.status_shenduchi, R.id.status_lishiyingduji,
+            R.id.data_kachi, R.id.data_qianfengchi, R.id.data_baifenbiao, R.id.data_niujubanshou, R.id.data_shenduchi, R.id.data_lishiyingduji})
     void onShakeHandClick(View view) {
         if (mBleConnectStatus != BluetoothLeService.STATE_DISCOVERED) {
             Log.e("TAG", "设备还没连接");
@@ -177,29 +191,41 @@ public class MainActivity extends AppCompatActivity {
             case R.id.shake_hand:
                 mBluetoothLeService.shakeHand();
                 break;
-            case R.id.status_1:
+            case R.id.status_kachi:
                 mBluetoothLeService.requestSpecifiedDeviceStatus("01000001");
                 break;
-            case R.id.status_2:
+            case R.id.status_qianfengchi:
                 mBluetoothLeService.requestSpecifiedDeviceStatus("02000001");
                 break;
-            case R.id.status_3:
+            case R.id.status_baifenbiao:
                 mBluetoothLeService.requestSpecifiedDeviceStatus("03000001");
                 break;
-            case R.id.status_4:
+            case R.id.status_niujubanshou:
                 mBluetoothLeService.requestSpecifiedDeviceStatus("04000001");
                 break;
-            case R.id.data_1:
+            case R.id.status_shenduchi:
+                mBluetoothLeService.requestSpecifiedDeviceStatus("05000001");
+                break;
+            case R.id.status_lishiyingduji:
+                mBluetoothLeService.requestSpecifiedDeviceStatus("06000001");
+                break;
+            case R.id.data_kachi:
                 mBluetoothLeService.requestSpecifiedDeviceData("01000001");
                 break;
-            case R.id.data_2:
+            case R.id.data_qianfengchi:
                 mBluetoothLeService.requestSpecifiedDeviceData("02000001");
                 break;
-            case R.id.data_3:
+            case R.id.data_baifenbiao:
                 mBluetoothLeService.requestSpecifiedDeviceData("03000001");
                 break;
-            case R.id.data_4:
+            case R.id.data_niujubanshou:
                 mBluetoothLeService.requestSpecifiedDeviceData("04000001");
+                break;
+            case R.id.data_shenduchi:
+                mBluetoothLeService.requestSpecifiedDeviceData("05000001");
+                break;
+            case R.id.data_lishiyingduji:
+                mBluetoothLeService.requestSpecifiedDeviceData("06000001");
                 break;
         }
         mHandler.postDelayed(new Runnable() {
@@ -210,29 +236,41 @@ public class MainActivity extends AppCompatActivity {
                         case R.id.shake_hand:
                             clearUI();
                             break;
-                        case R.id.status_1:
+                        case R.id.status_kachi:
                             showFailure(1);
                             break;
-                        case R.id.status_2:
+                        case R.id.status_qianfengchi:
                             showFailure(2);
                             break;
-                        case R.id.status_3:
+                        case R.id.status_baifenbiao:
                             showFailure(3);
                             break;
-                        case R.id.status_4:
+                        case R.id.status_shenduchi:
                             showFailure(4);
                             break;
-                        case R.id.data_1:
+                        case R.id.status_lishiyingduji:
+                            showFailure(5);
+                            break;
+                        case R.id.status_niujubanshou:
+                            showFailure(6);
+                            break;
+                        case R.id.data_kachi:
                             showFailure(1);
                             break;
-                        case R.id.data_2:
+                        case R.id.data_qianfengchi:
                             showFailure(2);
                             break;
-                        case R.id.data_3:
+                        case R.id.data_baifenbiao:
                             showFailure(3);
                             break;
-                        case R.id.data_4:
+                        case R.id.data_niujubanshou:
                             showFailure(4);
+                            break;
+                        case R.id.data_shenduchi:
+                            showFailure(5);
+                            break;
+                        case R.id.data_lishiyingduji:
+                            showFailure(6);
                             break;
                     }
                     ToastUtil.getInstance().showToast("操作超时");
@@ -260,39 +298,57 @@ public class MainActivity extends AppCompatActivity {
                     switch (statusFrame.getDeviceName()) {
                         case "数显卡尺":
                             if (statusFrame.getDeviceStatus().equals("在线")) {
-                                tv_status1.setTextColor(Color.parseColor("#00ff00"));
+                                tv_status_kachi.setTextColor(Color.parseColor("#00ff00"));
                             } else {
-                                tv_status1.setTextColor(Color.parseColor("#ff0000"));
-                                tv_data1.setText("0");
+                                tv_status_kachi.setTextColor(Color.parseColor("#ff0000"));
+                                tv_data_kachi.setText("0");
                             }
-                            tv_status1.setText(statusFrame.getDeviceStatus());
+                            tv_status_kachi.setText(statusFrame.getDeviceStatus());
                             break;
                         case "数显千分尺":
                             if (statusFrame.getDeviceStatus().equals("在线")) {
-                                tv_status2.setTextColor(Color.parseColor("#00ff00"));
+                                tv_status_qianfenchi.setTextColor(Color.parseColor("#00ff00"));
                             } else {
-                                tv_status2.setTextColor(Color.parseColor("#ff0000"));
-                                tv_data2.setText("0");
+                                tv_status_qianfenchi.setTextColor(Color.parseColor("#ff0000"));
+                                tv_data_qianfenchi.setText("0");
                             }
-                            tv_status2.setText(statusFrame.getDeviceStatus());
+                            tv_status_qianfenchi.setText(statusFrame.getDeviceStatus());
                             break;
                         case "数显百分表":
                             if (statusFrame.getDeviceStatus().equals("在线")) {
-                                tv_status3.setTextColor(Color.parseColor("#00ff00"));
+                                tv_status_baifenbiao.setTextColor(Color.parseColor("#00ff00"));
                             } else {
-                                tv_status3.setTextColor(Color.parseColor("#ff0000"));
-                                tv_data3.setText("0");
+                                tv_status_baifenbiao.setTextColor(Color.parseColor("#ff0000"));
+                                tv_data_baifenbiao.setText("0");
                             }
-                            tv_status3.setText(statusFrame.getDeviceStatus());
+                            tv_status_baifenbiao.setText(statusFrame.getDeviceStatus());
                             break;
                         case "数显扭矩扳手":
                             if (statusFrame.getDeviceStatus().equals("在线")) {
-                                tv_status4.setTextColor(Color.parseColor("#00ff00"));
+                                tv_status_niujubanshou.setTextColor(Color.parseColor("#00ff00"));
                             } else {
-                                tv_status4.setTextColor(Color.parseColor("#ff0000"));
-                                tv_data4.setText("0");
+                                tv_status_niujubanshou.setTextColor(Color.parseColor("#ff0000"));
+                                tv_data_niujubanshou.setText("0");
                             }
-                            tv_status4.setText(statusFrame.getDeviceStatus());
+                            tv_status_niujubanshou.setText(statusFrame.getDeviceStatus());
+                            break;
+                        case "数显深度尺":
+                            if (statusFrame.getDeviceStatus().equals("在线")) {
+                                tv_status_shenduchi.setTextColor(Color.parseColor("#00ff00"));
+                            } else {
+                                tv_status_shenduchi.setTextColor(Color.parseColor("#ff0000"));
+                                tv_data_shenduchi.setText("0");
+                            }
+                            tv_status_shenduchi.setText(statusFrame.getDeviceStatus());
+                            break;
+                        case "里氏硬度计":
+                            if (statusFrame.getDeviceStatus().equals("在线")) {
+                                tv_status_lishiyingduji.setTextColor(Color.parseColor("#00ff00"));
+                            } else {
+                                tv_status_lishiyingduji.setTextColor(Color.parseColor("#ff0000"));
+                                tv_data_lishiyingduji.setText("0");
+                            }
+                            tv_status_lishiyingduji.setText(statusFrame.getDeviceStatus());
                             break;
                     }
                 } else if (frame.getCmdType().equals(Frame.TYPE_REQUEST_SPECIFIED_DEVICE_DATA)) {
@@ -300,50 +356,74 @@ public class MainActivity extends AppCompatActivity {
                     switch (dataFrame.getDeviceName()) {
                         case "数显卡尺":
                             if (TextUtils.isEmpty(dataFrame.getDeviceData())) {
-                                tv_status1.setText("不在线");
-                                tv_status1.setTextColor(Color.parseColor("#ff0000"));
-                                tv_data1.setText("0");
+                                tv_status_kachi.setText("不在线");
+                                tv_status_kachi.setTextColor(Color.parseColor("#ff0000"));
+                                tv_data_kachi.setText("0");
                             } else {
-                                tv_status1.setText("在线");
-                                tv_status1.setTextColor(Color.parseColor("#00ff00"));
-                                tv_data1.setText(dataFrame.getDeviceData());
+                                tv_status_kachi.setText("在线");
+                                tv_status_kachi.setTextColor(Color.parseColor("#00ff00"));
+                                tv_data_kachi.setText(dataFrame.getDeviceData());
                                 mDao.put("数显卡尺", dataFrame.getDeviceData(), System.currentTimeMillis());
                             }
                             break;
                         case "数显千分尺":
                             if (TextUtils.isEmpty(dataFrame.getDeviceData())) {
-                                tv_status2.setText("不在线");
-                                tv_status2.setTextColor(Color.parseColor("#ff0000"));
-                                tv_data2.setText("0");
+                                tv_status_qianfenchi.setText("不在线");
+                                tv_status_qianfenchi.setTextColor(Color.parseColor("#ff0000"));
+                                tv_data_qianfenchi.setText("0");
                             } else {
-                                tv_status2.setText("在线");
-                                tv_status2.setTextColor(Color.parseColor("#00ff00"));
-                                tv_data2.setText(dataFrame.getDeviceData());
+                                tv_status_qianfenchi.setText("在线");
+                                tv_status_qianfenchi.setTextColor(Color.parseColor("#00ff00"));
+                                tv_data_qianfenchi.setText(dataFrame.getDeviceData());
                                 mDao.put("数显千分尺", dataFrame.getDeviceData(), System.currentTimeMillis());
                             }
                             break;
                         case "数显百分表":
                             if (TextUtils.isEmpty(dataFrame.getDeviceData())) {
-                                tv_status3.setText("不在线");
-                                tv_status3.setTextColor(Color.parseColor("#ff0000"));
-                                tv_data3.setText("0");
+                                tv_status_baifenbiao.setText("不在线");
+                                tv_status_baifenbiao.setTextColor(Color.parseColor("#ff0000"));
+                                tv_data_baifenbiao.setText("0");
                             } else {
-                                tv_status3.setText("在线");
-                                tv_status3.setTextColor(Color.parseColor("#00ff00"));
-                                tv_data3.setText(dataFrame.getDeviceData());
+                                tv_status_baifenbiao.setText("在线");
+                                tv_status_baifenbiao.setTextColor(Color.parseColor("#00ff00"));
+                                tv_data_baifenbiao.setText(dataFrame.getDeviceData());
                                 mDao.put("数显百分表", dataFrame.getDeviceData(), System.currentTimeMillis());
                             }
                             break;
                         case "数显扭矩扳手":
                             if (TextUtils.isEmpty(dataFrame.getDeviceData())) {
-                                tv_status4.setText("不在线");
-                                tv_status4.setTextColor(Color.parseColor("#ff0000"));
-                                tv_data4.setText("0");
+                                tv_status_niujubanshou.setText("不在线");
+                                tv_status_niujubanshou.setTextColor(Color.parseColor("#ff0000"));
+                                tv_data_niujubanshou.setText("0");
                             } else {
-                                tv_status4.setText("在线");
-                                tv_status4.setTextColor(Color.parseColor("#00ff00"));
-                                tv_data4.setText(dataFrame.getDeviceData());
+                                tv_status_niujubanshou.setText("在线");
+                                tv_status_niujubanshou.setTextColor(Color.parseColor("#00ff00"));
+                                tv_data_niujubanshou.setText(dataFrame.getDeviceData());
                                 mDao.put("数显扭矩扳手", dataFrame.getDeviceData(), System.currentTimeMillis());
+                            }
+                            break;
+                        case "数显深度尺":
+                            if (TextUtils.isEmpty(dataFrame.getDeviceData())) {
+                                tv_status_shenduchi.setText("不在线");
+                                tv_status_shenduchi.setTextColor(Color.parseColor("#ff0000"));
+                                tv_data_shenduchi.setText("0");
+                            } else {
+                                tv_status_shenduchi.setText("在线");
+                                tv_status_shenduchi.setTextColor(Color.parseColor("#00ff00"));
+                                tv_data_shenduchi.setText(dataFrame.getDeviceData());
+                                mDao.put("数显深度尺", dataFrame.getDeviceData(), System.currentTimeMillis());
+                            }
+                            break;
+                        case "里氏硬度计":
+                            if (TextUtils.isEmpty(dataFrame.getDeviceData())) {
+                                tv_status_lishiyingduji.setText("不在线");
+                                tv_status_lishiyingduji.setTextColor(Color.parseColor("#ff0000"));
+                                tv_data_lishiyingduji.setText("0");
+                            } else {
+                                tv_status_lishiyingduji.setText("在线");
+                                tv_status_lishiyingduji.setTextColor(Color.parseColor("#00ff00"));
+                                tv_data_lishiyingduji.setText(dataFrame.getDeviceData());
+                                mDao.put("里氏硬度计", dataFrame.getDeviceData(), System.currentTimeMillis());
                             }
                             break;
                     }
@@ -363,6 +443,8 @@ public class MainActivity extends AppCompatActivity {
         showFailure(2);
         showFailure(3);
         showFailure(4);
+        showFailure(5);
+        showFailure(6);
     }
 
     @Override
@@ -370,8 +452,6 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
         if (mBluetoothLeService != null) {
-            mBleConnectStatus = BluetoothLeService.STATE_CONNECTING;
-            invalidateOptionsMenu();
             final boolean result = mBluetoothLeService.connect(mDeviceAddress);
             Log.d(TAG, "Connect request result=" + result);
         }
@@ -439,24 +519,34 @@ public class MainActivity extends AppCompatActivity {
     private void showFailure(int type) {
         switch (type) {
             case 1:
-                tv_data1.setText("0");
-                tv_status1.setText("不在线");
-                tv_status1.setTextColor(Color.parseColor("#ff0000"));
+                tv_data_kachi.setText("0");
+                tv_status_kachi.setText("不在线");
+                tv_status_kachi.setTextColor(Color.parseColor("#ff0000"));
                 break;
             case 2:
-                tv_data2.setText("0");
-                tv_status2.setText("不在线");
-                tv_status2.setTextColor(Color.parseColor("#ff0000"));
+                tv_data_qianfenchi.setText("0");
+                tv_status_qianfenchi.setText("不在线");
+                tv_status_qianfenchi.setTextColor(Color.parseColor("#ff0000"));
                 break;
             case 3:
-                tv_data3.setText("0");
-                tv_status3.setText("不在线");
-                tv_status3.setTextColor(Color.parseColor("#ff0000"));
+                tv_data_baifenbiao.setText("0");
+                tv_status_baifenbiao.setText("不在线");
+                tv_status_baifenbiao.setTextColor(Color.parseColor("#ff0000"));
                 break;
             case 4:
-                tv_data4.setText("0");
-                tv_status4.setText("不在线");
-                tv_status4.setTextColor(Color.parseColor("#ff0000"));
+                tv_data_niujubanshou.setText("0");
+                tv_status_niujubanshou.setText("不在线");
+                tv_status_niujubanshou.setTextColor(Color.parseColor("#ff0000"));
+                break;
+            case 5:
+                tv_data_shenduchi.setText("0");
+                tv_status_shenduchi.setText("不在线");
+                tv_status_shenduchi.setTextColor(Color.parseColor("#ff0000"));
+                break;
+            case 6:
+                tv_data_lishiyingduji.setText("0");
+                tv_status_lishiyingduji.setText("不在线");
+                tv_status_lishiyingduji.setTextColor(Color.parseColor("#ff0000"));
                 break;
         }
         tv_debug.setText("");

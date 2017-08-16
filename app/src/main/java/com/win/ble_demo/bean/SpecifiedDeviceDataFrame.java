@@ -53,6 +53,11 @@ public class SpecifiedDeviceDataFrame {
             case "04":
                 frame.setDeviceName("数显扭矩扳手");
                 break;
+            case "05":
+                frame.setDeviceName("数显深度尺");
+                break;
+            case "06":
+                frame.setDeviceName("里氏硬度计");
         }
         frame.setDeviceNo(String.valueOf(Integer.parseInt(data.substring(2, 8), 16)));
         String deviceUnit;
@@ -72,6 +77,9 @@ public class SpecifiedDeviceDataFrame {
                 break;
             case "4E":
                 deviceUnit = "N*m";
+                break;
+            case "48":
+                deviceUnit = "HL";
                 break;
             default:
                 deviceUnit = "";
